@@ -1,0 +1,35 @@
+---
+# tasks file for postgres
+- name:  Check postgres for 1C is installed
+  stat:
+    path: /opt/pgpro/1c-{{ postgres_pg_ver }} 
+  register: pg_installed
+
+- name: Check posgres for 1C gpg key is exist
+  stat:
+    path: /etc/apt/trusted.gpg.d/pg_for1c.asc
+  register: pg_gpg_key
+
+- name: install gpg_key postgrespro
+  get_url:
+    url: https://repo.postgrespro.ru/keys/GPG-KEY-POSTGRESPRO
+    dest: /etc/apt/trusted.gpg.d/pg_for1c.asc
+  when: not pg_gpg_key.stat.exists
+
+- name: add repo for postgres for 1c
+  apt_repository:
+    repo: deb [arch=amd64] https://repo.postgrespro.ru/1c/1c-{{ postgres_pg_ver }}/ubuntu {{ ansible_distribution_release }} main
+  when: not pg_installed.stat.exists
+
+- name: install postgrespro-1c-{{ postgres_pg_ver }}
+  apt:
+    update_cache: true
+    pkg:
+      - postgrespro-1c-{{ postgres_pg_ver }}-contrib 
+      - acl
+    state: present
+
+- name: initdb
+  block:
+    - import_tasks: initdb.yml
+      

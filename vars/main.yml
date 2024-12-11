@@ -1,0 +1,8 @@
+---
+# vars file for postgres
+#postgres_pg_ver: 15
+#postgres_db_data: " /data/pgbase/prod "
+#postgres_db_port: " 5432 "
+#postgres_db_locale: "ru_RU.UTF-8 "
+#postgres_db_options: --data-checksums
+#postgres_db_init: "/opt/pgpro/1c-{{ postgres_pg_ver }}/bin/initdb --auth=peer --auth-host=scram-sha-256"

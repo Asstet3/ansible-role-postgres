@@ -1,0 +1,51 @@
+---
+- name: Ensure pg_dir is empty and no exist
+  find:
+    path: "{{ postgres_db_data + '/' + postgres_db_dir + '/' }}"
+  register: pg_dir_files
+
+- name: Ensure postgres_db_data is exist
+  stat:
+    path: "{{ postgres_db_data }}"
+  register: pg_data_dir
+
+- name: create dir {{ postgres_db_data }}
+  file:
+    path: "{{ postgres_db_data }}" 
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  when: not pg_data_dir.stat.exists
+
+- name: create database dir {{ postgres_db_dir }}
+  file:
+    path: "{{ (postgres_db_data|replace (' ', '')) + '/' + postgres_db_dir}}"
+    owner: postgres
+    group: postgres
+    mode:  0750
+    state: directory
+  when: pg_dir_files.matched == 0
+
+- name: Ensure a locales exists
+  locale_gen:
+    name: 
+      - ru_RU.UTF-8
+      - en_US.UTF-8
+    state: present
+
+- name: cmd initdb
+  shell: >
+    {{ postgres_db_init }}
+    --pgdata={{ postgres_db_data + '/' + postgres_db_dir }}
+    --locale={{ postgres_db_locale }}
+    {{ '--data-checksums' if postgres_db_checksum }}
+    {{ postgres_db_extra_opt }}
+  when: pg_dir_files.matched == 0
+
+- name: Enable postgresql service
+  systemd_service:
+    name: postgrespro-1c-{{ postgres_pg_ver }}.service
+    state: started
+    daemon_reload: true
+    enabled: true
