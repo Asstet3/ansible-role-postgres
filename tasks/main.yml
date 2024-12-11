@@ -7,7 +7,7 @@
 
 - name: Check posgres for 1C gpg key is exist
   stat:
-    path: /etc/apt/trusted.gpg.d/pg_for1c.asc
+    path: "/etc/apt/trusted.gpg.d/pg_for1c-{{ postgres_db_data }}.asca"
   register: pg_gpg_key
 
 - name: install gpg_key postgrespro
