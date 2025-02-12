@@ -1,0 +1,18 @@
+---
+- name: esnure python3-pip is install
+  apt:
+    update_cache: true
+    pkg:
+      python3-pip
+    state: present
+
+- name: ensure psycopg2-binary is install
+  pip:
+    name: psycopg2-binary
+    state: present
+  
+- name: set password for the postgres user
+  community.postgresql.postgresql_user:
+    login_unix_socket: /tmp
+    name: postgres
+    password: "{{ postgres_db_user_pass }}"

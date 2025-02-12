@@ -6,4 +6,8 @@ postgres_db_dir: prod
 postgres_db_locale: "ru_RU.UTF-8 "
 postgres_db_init: "/opt/pgpro/1c-{{ postgres_pg_ver }}/bin/pg-setup initdb "
 postgres_db_checksum: true
-postgres_db_extra_opt: "--auth=peer --auth-host=scram-sha-256 --tune=1c"
+postgres_db_extra_opt: "--auth-local=trust --auth-host=scram-sha-256 --tune=1c"
+postgres_db_user_pass: "Qwerty"
+postgres_db_rep_slot: false
+inventory_replica_ip: 127.0.0.1
+inventory_replica_host: "{{ ansible_facts['nodename'] }}"

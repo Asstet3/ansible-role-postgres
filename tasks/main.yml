@@ -32,4 +32,16 @@
 - name: initdb
   block:
     - import_tasks: initdb.yml
-      
+    - import_tasks: create_user.yml     
+
+#create replica slot if postgres_db_rep_slot true
+
+- name: create replication slot
+  community.postgresql.postgresql_slot:
+    login_unix_socket: /tmp
+    login_user: postgres
+    login_password: "{{ postgres_db_user_pass }}"
+    port: 5432
+    name: "{{ inventory_replica_host }}"
+    state: present 
+  when: postgres_db_rep_slot
