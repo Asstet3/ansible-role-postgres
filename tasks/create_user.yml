@@ -1,11 +1,4 @@
 ---
-- name: esnure python3-pip is install
-  apt:
-    update_cache: true
-    pkg:
-      python3-pip
-    state: present
-
 - name: ensure psycopg2-binary is install
   pip:
     name: psycopg2-binary
@@ -16,3 +9,19 @@
     login_unix_socket: /tmp
     name: postgres
     password: "{{ postgres_db_user_pass }}"
+  when: inventory_replica_signal == false
+
+- name: create user for replication
+  community.postgresql.postgresql_user:
+    login_unix_socket: /tmp
+    name: "{{ postgres_db_rep_role }}"
+    password: "{{ postgres_db_rep_role_pass }}"
+    role_attr_flags: "REPLICATION"
+  when: postgres_db_rep_slot and inventory_replica_signal == false
+
+- name: 'create ~/.pgpass'
+  become_user: postgres
+  template:
+    src: templates/.pgpass.j2
+    dest: /var/lib/postgresql/.pgpass
+    mode: 0600

@@ -27,13 +27,6 @@
     state: directory
   when: pg_dir_files.matched == 0
 
-- name: Ensure a locales exists
-  locale_gen:
-    name: 
-      - ru_RU.UTF-8
-      - en_US.UTF-8
-    state: present
-
 - name: cmd initdb
   shell: >
     {{ postgres_db_init }}
@@ -42,6 +35,30 @@
     {{ '--data-checksums' if postgres_db_checksum }}
     {{ postgres_db_extra_opt }}
   when: pg_dir_files.matched == 0
+
+- name: add replication to pg_hba.conf master
+  lineinfile:
+    path: "{{ postgres_db_data }}/{{ postgres_db_dir }}/pg_hba.conf"
+    line: "host replication {{ postgres_db_rep_role }} {{ inventory_replica_ip }}/32 md5"
+  notify: restart postgres
+  when: not inventory_replica_signal
+
+- name: add to postgresql.conf block
+  ansible.builtin.blockinfile:
+    path: /data/pgbase/prod/postgresql.conf
+    block: |
+      wal_level = replica
+      log_replication_commands = on
+      log_min_messages = info
+      log_min_error_statement = info
+      archive_mode = on
+      archive_command = 'cd .'
+      max_wal_senders = 10
+      hot_standby = on
+      primary_conninfo = 'user={{postgres_db_rep_role}} passfile=''/var/lib/postgresql/.pgpass'' hostaddr={{ inventory_replica_ip }} channel_binding=disable port=5432 sslmode=disable sslcompression=0 ssl_min_protocol_version=TLSv1.2 gssencmode=disable krbsrvname=postgres target_session_attrs=any'
+      wal_keep_size = {{ postgres_db_rep_size }}
+      primary_slot_name = {{ ansible_facts['nodename'] }}
+  when: not inventory_replica_signal
 
 - name: Enable postgresql service
   systemd_service:

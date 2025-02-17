@@ -1,2 +1,11 @@
 ---
 # handlers file for postgres
+- name: restart postgres
+  ansible.builtin.service:
+   name: postgrespro-1c-15
+   state: restarted
+
+- name: start postgres
+  ansible.builtin.service:
+   name: postgrespro-1c-15
+   state: started

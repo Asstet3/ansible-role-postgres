@@ -27,21 +27,24 @@
     pkg:
       - postgrespro-1c-{{ postgres_pg_ver }}-contrib 
       - acl
+      - python3-pip
     state: present
 
+- name: Ensure a locales exists
+  locale_gen:
+    name: 
+      - ru_RU.UTF-8
+      - en_US.UTF-8
+    state: present
+ 
 - name: initdb
   block:
     - import_tasks: initdb.yml
+      #when: inventory_replica_signal == false
     - import_tasks: create_user.yml     
 
 #create replica slot if postgres_db_rep_slot true
-
-- name: create replication slot
-  community.postgresql.postgresql_slot:
-    login_unix_socket: /tmp
-    login_user: postgres
-    login_password: "{{ postgres_db_user_pass }}"
-    port: 5432
-    name: "{{ inventory_replica_host }}"
-    state: present 
+- name: replication
+  block:
+    - import_tasks: replica.yml
   when: postgres_db_rep_slot

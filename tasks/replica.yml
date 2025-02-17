@@ -1,0 +1,70 @@
+---
+- name: be sure the folder "{{ postgres_db_data }}/{{ postgres_db_dir }}/" exist with standby.signal
+  stat:
+    path: "{{ postgres_db_data }}/{{ postgres_db_dir }}/standby.signal" 
+  register: standby_signal
+    
+- name: stop postgresql service
+  systemd_service:
+    name: postgrespro-1c-{{ postgres_pg_ver }}.service
+    state: stopped
+  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+
+- name: delete default data in catalog Data
+  ansible.builtin.file:
+    path: "{{ postgres_db_data }}/{{ postgres_db_dir }}/"
+    state: absent
+  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+
+- name: Ensure postgres_db_data is exist
+  stat:
+    path: "{{ postgres_db_data }}"
+  register: pg_data_dir_rep
+  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+
+- name: create dir {{ postgres_db_data }} 
+  file:
+    path: "{{ postgres_db_data }}" 
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+
+- name: create folder to PG data
+  file:
+    owner: postgres
+    group: postgres
+    state: directory
+    mode: '0750'
+    recurse: true
+    path: "{{ postgres_db_data }}/{{ postgres_db_dir }}"
+  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+
+- name: create pg_basebackup to replica
+  become_user: postgres
+  command: /opt/pgpro/1c-{{ postgres_pg_ver }}/bin/pg_basebackup -R -Xs -h "{{ inventory_replica_ip }}" -D "{{ postgres_db_data }}/{{ postgres_db_dir }}" -U "{{ postgres_db_rep_role }}" -w  
+  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+
+- name: add access replication to pg_hba.conf
+  lineinfile:
+    path: "{{ postgres_db_data }}/{{ postgres_db_dir }}/pg_hba.conf"
+    line: "host replication {{ postgres_db_rep_role }} {{ inventory_replica_ip }}/32 md5"
+  notify: start postgres
+  when: inventory_replica_signal == "true"
+
+- name: start postgresql service
+  systemd_service:
+    name: postgrespro-1c-{{ postgres_pg_ver }}.service
+    state: started
+  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+  
+- name: create replication slot
+  community.postgresql.postgresql_slot:
+    login_unix_socket: /tmp
+    login_user: postgres
+    login_password: "{{ postgres_db_user_pass }}"
+    port: 5432
+    name: "{{ inventory_replica_host }}"
+    state: present
+  when: postgres_db_rep_slot
