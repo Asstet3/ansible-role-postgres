@@ -57,7 +57,7 @@
       hot_standby = on
       primary_conninfo = 'user={{postgres_db_rep_role}} passfile=''/var/lib/postgresql/.pgpass'' hostaddr={{ inventory_replica_ip }} channel_binding=disable port=5432 sslmode=disable sslcompression=0 ssl_min_protocol_version=TLSv1.2 gssencmode=disable krbsrvname=postgres target_session_attrs=any'
       wal_keep_size = {{ postgres_db_rep_size }}
-      primary_slot_name = {{ ansible_facts['nodename'] }}
+      primary_slot_name = {{ inventory_replica_host | quote }}
   when: not inventory_replica_signal
 
 - name: Enable postgresql service

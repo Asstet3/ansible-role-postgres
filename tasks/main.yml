@@ -37,6 +37,11 @@
       - en_US.UTF-8
     state: present
  
+- name: ensure psycopg2-binary is install
+  pip:
+    name: psycopg2-binary
+    state: present
+
 - name: initdb
   block:
     - import_tasks: initdb.yml

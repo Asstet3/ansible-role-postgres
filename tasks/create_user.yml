@@ -1,9 +1,4 @@
 ---
-- name: ensure psycopg2-binary is install
-  pip:
-    name: psycopg2-binary
-    state: present
-  
 - name: set password for the postgres user
   community.postgresql.postgresql_user:
     login_unix_socket: /tmp
