@@ -1,12 +1,15 @@
 ---
 # defaults file for postgres
-postgres_pg_ver: 15
+postgres_pg_1c: false
+postgres_pg_ver: "12"
 postgres_db_data: "/data/pgbase"
-postgres_db_dir: prod
+postgres_db_dir: "prod"
 postgres_db_locale: "ru_RU.UTF-8 "
-postgres_db_init: "/opt/pgpro/1c-{{ postgres_pg_ver }}/bin/pg-setup initdb "
-postgres_db_checksum: true
+postgres_db_init_command_1c: "/opt/pgpro/1c-{{ postgres_pg_ver }}/bin/pg-setup initdb "
+postgres_db_init_command: "/usr/lib/postgresql/{{ postgres_pg_ver }}/bin/initdb" 
+postgres_db_checksum: "true"
 postgres_db_extra_opt: "--auth-local=trust --auth-host=scram-sha-256 --tune=1c"
+postgres_db_ports: "5432"
 postgres_db_user: false
 postgres_db_user_pass: "Qwerty"
 postgres_db_rep_slot: false
@@ -15,4 +18,5 @@ postgres_db_rep_role_pass: 'Qwerty123'
 postgres_db_rep_size: 3GB
 inventory_replica_ip: 127.0.0.1
 inventory_replica_host: "{{ ansible_facts['nodename'] }}"
-inventory_replica_signal: false
+inventory_replica_signal: "false"              
+# если  true, создает запись в pg_hba, для репликации с postgres_db_rep_role и inventory_replica_ip

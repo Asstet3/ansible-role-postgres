@@ -4,6 +4,7 @@
   stat:
     path: /opt/pgpro/1c-{{ postgres_pg_ver }} 
   register: pg_installed
+  when: postgres_pg_1c == true
 
 - name: Check posgres for 1C gpg key is exist
   stat:
@@ -14,21 +15,23 @@
   get_url:
     url: https://repo.postgrespro.ru/keys/GPG-KEY-POSTGRESPRO
     dest: /etc/apt/trusted.gpg.d/pg_for1c.asc
-  when: not pg_gpg_key.stat.exists
+  when: pg_gpg_key.stat.exists == false and postgres_pg_1c == true
 
 - name: add repo for postgres for 1c
   apt_repository:
     repo: deb [arch=amd64] https://repo.postgrespro.ru/1c/1c-{{ postgres_pg_ver }}/ubuntu {{ ansible_distribution_release }} main
-  when: not pg_installed.stat.exists
+  when: postgres_pg_1c == true and pg_installed.stat.exists == false
 
 - name: install postgrespro-1c-{{ postgres_pg_ver }}
   apt:
-    update_cache: false
+    update_cache: true
     pkg:
-      #- postgrespro-1c-{{ postgres_pg_ver }}-contrib 
+      - "{{ pg_install }}"
       - acl
       - python3-pip
     state: present
+  vars: 
+    pg_install: "{{ 'postgrespro-1c-' + postgres_pg_ver + '-contrib' if postgres_pg_1c | bool else 'postgresql-' + postgres_pg_ver }}"
   tags: replica
 
 - name: Ensure a locales exists
@@ -45,11 +48,10 @@
     state: present
   tags: replica
 
-- name: initdb
+- name: initdb and createuser
   block:
     - import_tasks: initdb.yml
-      #when: inventory_replica_signal == false
-    - import_tasks: create_user.yml     
+    - import_tasks: create_user.yml
 
 #create replica slot if postgres_db_rep_slot true
 - name: replication

@@ -27,21 +27,30 @@
     state: directory
   when: pg_dir_files.matched == 0
 
-- name: cmd initdb
+- name: cmd initdb if postgres for 1c
   shell: >
-    {{ postgres_db_init }}
+    {{ postgres_db_init_command_1c }}
     --pgdata={{ postgres_db_data + '/' + postgres_db_dir }}
     --locale={{ postgres_db_locale }}
     {{ '--data-checksums' if postgres_db_checksum }}
     {{ postgres_db_extra_opt }}
-  when: pg_dir_files.matched == 0
+  when: pg_dir_files.matched == 0 and postgres_pg_1c == true
+
+- name: cmd initdb if postgresql classic
+  become_user: postgres
+  shell: >
+    {{ postgres_db_init_command }}
+    --pgdata={{ postgres_db_data + '/' + postgres_db_dir }}
+    --locale={{ postgres_db_locale }}
+    {{ '-k' if postgres_db_checksum }}
+  when: pg_dir_files.matched == 0 and postgres_pg_1c == false
 
 - name: add replication to pg_hba.conf master
   lineinfile:
     path: "{{ postgres_db_data }}/{{ postgres_db_dir }}/pg_hba.conf"
     line: "host replication {{ postgres_db_rep_role }} {{ inventory_replica_ip }}/32 md5"
   notify: restart postgres
-  when: not inventory_replica_signal
+  when: inventory_replica_signal == true
 
 - name: add to postgresql.conf block
   ansible.builtin.blockinfile:
@@ -55,14 +64,16 @@
       archive_command = 'cd .'
       max_wal_senders = 10
       hot_standby = on
-      primary_conninfo = 'user={{postgres_db_rep_role}} passfile=''/var/lib/postgresql/.pgpass'' hostaddr={{ inventory_replica_ip }} channel_binding=disable port=5432 sslmode=disable sslcompression=0 ssl_min_protocol_version=TLSv1.2 gssencmode=disable krbsrvname=postgres target_session_attrs=any'
+      primary_conninfo = 'user={{postgres_db_rep_role}} passfile=''/var/lib/postgresql/.pgpass'' hostaddr={{ inventory_replica_ip }} channel_binding=disable port={{ postgres_db_ports }} sslmode=disable sslcompression=0 ssl_min_protocol_version=TLSv1.2 gssencmode=disable krbsrvname=postgres target_session_attrs=any'
       wal_keep_size = {{ postgres_db_rep_size }}
       primary_slot_name = {{ inventory_replica_host | quote }}
-  when: not inventory_replica_signal
+  when: inventory_replica_signal == true
 
 - name: Enable postgresql service
   systemd_service:
-    name: postgrespro-1c-{{ postgres_pg_ver }}.service
+    name: "{{ pg_services }}.service"
     state: started
     daemon_reload: true
     enabled: true
+  vars:
+    pg_services: "{{ 'postgrespro-1c-' + postgres_pg_ver if postgres_pg_1c | bool else 'postgresql@' + postgres_pg_ver + '-main' }}"
