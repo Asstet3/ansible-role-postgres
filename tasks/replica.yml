@@ -1,26 +1,37 @@
 ---
-- name: be sure the folder "{{ postgres_db_data }}/{{ postgres_db_dir }}/" exist with standby.signal
+- name: be sure  Data folder  exist with standby.signal
   stat:
-    path: "{{ postgres_db_data }}/{{ postgres_db_dir }}/standby.signal" 
+    path: "{{ postgres_db_data }}/{{ item }}/standby.signal" 
+  loop: "{{ postgres_db_dir }}"
   register: standby_signal
+  tags: replica
     
 - name: stop postgresql service
   systemd_service:
-    name: postgrespro-1c-{{ postgres_pg_ver }}.service
+    name: postgresql.service
     state: stopped
   when: not standby_signal.stat.exists and inventory_replica_signal == "true"
 
+- name: add lists data dir and ports to dictionary
+  set_fact:
+    postgres_db_dir_port: "{{ postgres_db_dir_port | default({}) | combine({item.0: { 'port': item.1, 'exists': item.2.stat.exists }}) }}"
+  loop: "{{ query('together', postgres_db_dir, postgres_db_rep_port, standby_signal.results) }}"
+  tags: replica
+
 - name: delete default data in catalog Data
   ansible.builtin.file:
-    path: "{{ postgres_db_data }}/{{ postgres_db_dir }}/"
+    path: "{{ postgres_db_data }}/{{ item.key }}/"
     state: absent
-  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+  when: item.value.exists == false and inventory_replica_signal == true 
+  loop: "{{ postgres_db_dir_port | dict2items }}"
+  tags: replica
 
 - name: Ensure postgres_db_data is exist
   stat:
     path: "{{ postgres_db_data }}"
   register: pg_data_dir_rep
-  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+  when:  inventory_replica_signal == true
+  tags: replica
 
 - name: create dir {{ postgres_db_data }} 
   file:
@@ -29,7 +40,8 @@
     group: root
     mode: 0755
     state: directory
-  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+  when:  inventory_replica_signal == true
+  tags: replica
 
 - name: create folder to PG data
   file:
@@ -38,13 +50,17 @@
     state: directory
     mode: '0750'
     recurse: true
-    path: "{{ postgres_db_data }}/{{ postgres_db_dir }}"
-  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+    path: "{{ postgres_db_data }}/{{ item.key }}"
+  when: item.value.exists == false and inventory_replica_signal == true
+  loop: "{{ postgres_db_dir_port | dict2items }}"
+  tags: replica
 
 - name: create pg_basebackup to replica
   become_user: postgres
-  command: /opt/pgpro/1c-{{ postgres_pg_ver }}/bin/pg_basebackup -R -Xs -h "{{ inventory_replica_ip }}" -D "{{ postgres_db_data }}/{{ postgres_db_dir }}" -U "{{ postgres_db_rep_role }}" -w
-  when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+  command: pg_basebackup -R -Xs -h "{{ inventory_replica_ip }}" -D "{{ postgres_db_data }}/{{ item.key }}" -U "{{ postgres_db_rep_role }}" -w -p "{{ item.value.port }}"
+  when: item.value.exists == false and inventory_replica_signal == true
+  loop: "{{ postgres_db_dir_port | dict2items }}"
+  tags: replica
 
 - name: add access replication to pg_hba.conf
   lineinfile:
@@ -52,12 +68,14 @@
     line: "host replication {{ postgres_db_rep_role }} {{ inventory_replica_ip }}/32 md5"
   notify: start postgres
   when: inventory_replica_signal == "true"
+  tags: replica
 
 - name: start postgresql service
   systemd_service:
     name: postgrespro-1c-{{ postgres_pg_ver }}.service
     state: started
   when: not standby_signal.stat.exists and inventory_replica_signal == "true"
+  tags: replica
 
 - name: create replication slot
   community.postgresql.postgresql_slot:
@@ -68,3 +86,4 @@
     name: "{{ ansible_hostname }}"
     state: present
   when: postgres_db_rep_slot
+  tags: replica

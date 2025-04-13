@@ -23,12 +23,13 @@
 
 - name: install postgrespro-1c-{{ postgres_pg_ver }}
   apt:
-    update_cache: true
+    update_cache: false
     pkg:
-      - postgrespro-1c-{{ postgres_pg_ver }}-contrib 
+      #- postgrespro-1c-{{ postgres_pg_ver }}-contrib 
       - acl
       - python3-pip
     state: present
+  tags: replica
 
 - name: Ensure a locales exists
   locale_gen:
@@ -36,11 +37,13 @@
       - ru_RU.UTF-8
       - en_US.UTF-8
     state: present
+  tags: replica
  
 - name: ensure psycopg2-binary is install
   pip:
     name: psycopg2-binary
     state: present
+  tags: replica
 
 - name: initdb
   block:
@@ -50,6 +53,6 @@
 
 #create replica slot if postgres_db_rep_slot true
 - name: replication
-  block:
-    - import_tasks: replica.yml
-  when: postgres_db_rep_slot
+  ansible.builtin.include_tasks:
+    file: replica.yml
+  tags: replica
