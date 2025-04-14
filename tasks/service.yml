@@ -1,0 +1,37 @@
+---
+- name: Enshyre pg_service is exitsts
+  stat:
+    path: "/usr/lib/systemd/system/postgrespro-1c-{{ item.key }}.service"
+  loop: "{{ postgres_db_dir_port | dict2items }}"
+  register: pg_services_exists
+
+- name: Update postgres_db_dir_port with service status
+  set_fact:
+    postgres_db_dir_port: "{{ postgres_db_dir_port | combine({item.item.key: postgres_db_dir_port[item.item.key] | combine({'service_exists': item.stat.exists})}) }}"
+  loop: "{{ pg_services_exists.results }}"
+
+- name: copy service for 1c
+  ansible.builtin.copy: 
+    remote_src: yes
+    src: "/usr/lib/systemd/system/postgrespro-1c-{{ postgres_pg_ver }}.service"
+    dest: "/usr/lib/systemd/system/postgrespro-1c-{{ item.key }}.service"
+  loop: "{{ postgres_db_dir_port | dict2items }}"
+  when: postgres_pg_1c == true and item.value.service_exists == false
+
+- name: edit service environment
+  ansible.builtin.lineinfile:
+    path: /usr/lib/systemd/system/postgrespro-1c-{{ item.key }}.service
+    search_string: EnvironmentFile=/etc/default/postgrespro-1c-12
+    line: Environment="PGDATA=/data/pgbase/{{ item.key }}/"
+  loop: "{{ postgres_db_dir_port | dict2items }}"
+  when: postgres_pg_1c == true
+
+- name: Enable postgresql service
+  systemd_service:
+    name: "{{ pg_services }}.service"
+    state: started
+    daemon_reload: true
+    enabled: true
+  vars:
+    pg_services: "{{ 'postgrespro-1c-' + item.key  if postgres_pg_1c | bool else 'postgresql@' + postgres_pg_ver + '-main' }}"
+  loop: "{{ postgres_db_dir_port | dict2items }}"

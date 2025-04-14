@@ -4,13 +4,13 @@ postgres_pg_1c: true
   # если тру то ставит постгрес от 1с иначе ванильный
 postgres_pg_ver: "12"
 postgres_db_data: "/data/pgbase"
-postgres_db_dir: [prod]
+postgres_db_dir: [prod,prod3]
 postgres_db_locale: "ru_RU.UTF-8 "
 postgres_db_init_command_1c: "/opt/pgpro/1c-{{ postgres_pg_ver }}/bin/initdb "
 postgres_db_init_command: "/usr/lib/postgresql/{{ postgres_pg_ver }}/bin/initdb" 
 postgres_db_checksum: "true"
 postgres_db_extra_opt: "--auth-local=trust --auth-host=scram-sha-256 "
-postgres_db_ports: [5432]
+postgres_db_ports: [5432,5434]
 postgres_db_user: false
   # Если true, меняет пароль у пользователя рут на postgres_db_user_pass
 postgres_db_user_pass: "Qwerty"

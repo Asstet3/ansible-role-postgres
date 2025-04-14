@@ -70,7 +70,7 @@
     path: "/data/pgbase/{{ item.key }}/postgresql.conf"
     block: |
       port = {{ item.value.port }}
-      unix_socket_directories = "/tmp"
+      unix_socket_directories = '/tmp'
   loop: "{{ postgres_db_dir_port | dict2items }}"
 
 - name: add to postgresql.conf block
@@ -92,11 +92,3 @@
   loop: "{{ postgres_db_dir_port | dict2items }}"
   when: postgres_db_rep_slot == true
 
-    #- name: Enable postgresql service
-    #  systemd_service:
-    #    name: "{{ pg_services }}.service"
-    #    state: started
-    #    daemon_reload: true
-    #    enabled: true
-    #  vars:
-    #    pg_services: "{{ 'postgrespro-1c-' + postgres_pg_ver if postgres_pg_1c | bool else 'postgresql@' + postgres_pg_ver + '-main' }}"
