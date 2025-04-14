@@ -54,7 +54,9 @@
     - import_tasks: create_user.yml
 
 #create replica slot if postgres_db_rep_slot true
-- name: replication
-  ansible.builtin.include_tasks:
-    file: replica.yml
-  tags: replica
+#- name: replication
+#  ansible.builtin.include_tasks:
+#    file: replica.yml
+#  tags: replica
+#  when: postgres_db_rep_slot == true
+

@@ -62,7 +62,7 @@
     line: "host replication {{ postgres_db_rep_role }} {{ inventory_replica_ip }}/32 md5"
   notify: restart postgres
   loop: "{{ postgres_db_dir_port | dict2items }}" 
-  when: inventory_replica_signal == true
+  when: postgres_db_rep_slot == true
 
 - name: add to postgresql.conf port №
   ansible.builtin.blockinfile:
@@ -90,7 +90,7 @@
       wal_keep_size = {{ postgres_db_rep_size }}
       primary_slot_name = {{ inventory_replica_host | quote }}
   loop: "{{ postgres_db_dir_port | dict2items }}"
-  when: inventory_replica_signal == true
+  when: postgres_db_rep_slot == true
 
     #- name: Enable postgresql service
     #  systemd_service:
