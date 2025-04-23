@@ -7,7 +7,7 @@
     name: postgres
     password: "{{ postgres_db_user_pass }}"
   loop: "{{ postgres_db_dir_port | dict2items }}"
-  when: postgres_db_user == true
+  when: postgres_db_user == true  and inventory_replica_signal == false
 
 - name: create user for replication
   community.postgresql.postgresql_user:
@@ -16,7 +16,7 @@
     password: "{{ postgres_db_rep_role_pass }}"
     role_attr_flags: "REPLICATION"
   loop: "{{ postgres_db_dir_port | dict2items }}"
-  when: postgres_db_rep_slot == true and inventory_replica_signal == false
+  when: postgres_db_rep_slot == true and inventory_replica_signal == false and inventory_replica_signal == false
 
 - name: 'create ~/.pgpass'
   become_user: postgres
@@ -24,3 +24,4 @@
     src: templates/.pgpass.j2
     dest: /var/lib/postgresql/.pgpass
     mode: 0600
+  when: postgres_db_rep_pgpass == true

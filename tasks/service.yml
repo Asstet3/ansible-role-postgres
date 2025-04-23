@@ -35,3 +35,4 @@
   vars:
     pg_services: "{{ 'postgrespro-1c-' + item.key  if postgres_pg_1c | bool else 'postgresql@' + postgres_pg_ver + '-main' }}"
   loop: "{{ postgres_db_dir_port | dict2items }}"
+  when:  inventory_replica_signal == false

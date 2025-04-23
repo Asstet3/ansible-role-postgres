@@ -43,7 +43,7 @@
     {{ '--data-checksums' if postgres_db_checksum }}
     {{ postgres_db_extra_opt }}
   loop: "{{ postgres_db_dir_port | dict2items }}" 
-  when: item.value.matched == 0 and postgres_pg_1c == true
+  when: item.value.matched == 0 and postgres_pg_1c == true and inventory_replica_signal == false
 
 - name: cmd initdb if postgresql classic
   become_user: postgres
@@ -54,7 +54,7 @@
     {{ '-k' if postgres_db_checksum }}
     {{ postgres_db_extra_opt }}
   loop: "{{ postgres_db_dir_port | dict2items }}" 
-  when: item.value.matched == 0 and postgres_pg_1c == false
+  when: item.value.matched == 0 and postgres_pg_1c == false and inventory_replica_signal == false
 
 - name: add replication to pg_hba.conf master
   lineinfile:
@@ -62,7 +62,7 @@
     line: "host replication {{ postgres_db_rep_role }} {{ inventory_replica_ip }}/32 md5"
   notify: restart postgres
   loop: "{{ postgres_db_dir_port | dict2items }}" 
-  when: postgres_db_rep_slot == true
+  when: postgres_db_rep_slot == true and inventory_replica_signal == false
 
 - name: add to postgresql.conf port №
   ansible.builtin.blockinfile:
@@ -72,6 +72,7 @@
       port = {{ item.value.port }}
       unix_socket_directories = '/tmp'
   loop: "{{ postgres_db_dir_port | dict2items }}"
+  when: inventory_replica_signal == false
 
 - name: add to postgresql.conf block
   ansible.builtin.blockinfile:
@@ -90,5 +91,5 @@
       wal_keep_size = {{ postgres_db_rep_size }}
       primary_slot_name = {{ inventory_replica_host | quote }}
   loop: "{{ postgres_db_dir_port | dict2items }}"
-  when: postgres_db_rep_slot == true
+  when: postgres_db_rep_slot == true and inventory_replica_signal == false
 
