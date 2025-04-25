@@ -24,4 +24,3 @@
     src: templates/.pgpass.j2
     dest: /var/lib/postgresql/.pgpass
     mode: 0600
-  when: postgres_db_rep_pgpass == true

@@ -21,7 +21,7 @@
 - name: edit service environment
   ansible.builtin.lineinfile:
     path: /usr/lib/systemd/system/postgrespro-1c-{{ item.key }}.service
-    search_string: EnvironmentFile=/etc/default/postgrespro-1c-12
+    search_string: "EnvironmentFile=/etc/default/postgrespro-1c-{{ postgres_pg_ver }}"
     line: Environment="PGDATA=/data/pgbase/{{ item.key }}/"
   loop: "{{ postgres_db_dir_port | dict2items }}"
   when: postgres_pg_1c == true

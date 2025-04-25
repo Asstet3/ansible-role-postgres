@@ -2,10 +2,16 @@
 # handlers file for postgres
 - name: restart postgres
   ansible.builtin.service:
-   name: postgrespro-1c-15
+   name:  "{{ pg_services }}"
    state: restarted
+    pg_services: "{{ 'postgrespro-1c-' + item.key  if postgres_pg_1c | bool else 'postgresql@' + postgres_pg_ver + '-main' }}"
+  loop: "{{ postgres_db_dir_port | dict2items }}"
 
 - name: start postgres
   ansible.builtin.service:
-   name: postgrespro-1c-15
+   name: "{{ pg_services }}"
    state: started
+ vars:
+    pg_services: "{{ 'postgrespro-1c-' + item.key  if postgres_pg_1c | bool else 'postgresql@' + postgres_pg_ver + '-main' }}"
+  loop: "{{ postgres_db_dir_port | dict2items }}"
+

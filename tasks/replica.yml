@@ -50,10 +50,12 @@
 
 - name: create pg_basebackup to replica
   become_user: postgres
-  command: pg_basebackup -R -Xs -h "{{ inventory_replica_ip }}" -D "{{ postgres_db_data }}/{{ item.key }}" -U "{{ postgres_db_rep_role }}" -w -p "{{ item.value.port }}"
+  command: "{{ pg_basebackup }}" -R -Xs -h "{{ inventory_replica_ip }}" -D "{{ postgres_db_data }}/{{ item.key }}" -U "{{ postgres_db_rep_role }}" -w -p "{{ item.value.port }}"
   loop: "{{ postgres_db_dir_port | dict2items }}"
-
-
+  when: item.value.standby_signal == false
+  vars:
+    pg_basebackup: "{{ '/opt/pgpro/1c-' + postgres_pg_ver + '/bin/pg_basebackup' if postgres_pg_1c | bool else 'pg_basebackup'  }}"
+ 
 - name: add access replication to pg_hba.conf
   lineinfile:
     marker: "# {mark} replication access"
@@ -71,12 +73,3 @@
     postgres_pg_ver: "{{ 'postgrespro-1c-' + item.key  if postgres_pg_1c | bool else 'postgresql@' + postgres_pg_ver + '-main' }}"
   loop: "{{ postgres_db_dir_port | dict2items }}"
 
-- name: create replication slot
-  community.postgresql.postgresql_slot:
-    login_unix_socket: /tmp
-    login_user: postgres
-    login_password: "{{ postgres_db_user_pass }}"
-    port: "{{ item.value.port }}"
-    name: "{{ ansible_hostname }}"
-    state: present
-  loop: "{{ postgres_db_dir_port | dict2items }}"
